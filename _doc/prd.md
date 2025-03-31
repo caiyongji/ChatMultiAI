@@ -12,7 +12,7 @@
 - typescript
 - plasmo
 - nextjs
-- shadcn
+- shadcn - command: npx shadcn@latest add button
 - tailwindcss
 - pnpm
 - next-themes (主题切换)
