@@ -12,6 +12,7 @@ ChatMultiAI is a Chrome browser extension built with Plasmo framework that allow
 - **Extension Framework**: Plasmo
 - **UI Components**: shadcn/ui components
 - **Styling**: TailwindCSS
+- **Theming**: next-themes for system-based theme switching
 - **Package Manager**: pnpm
 
 ## Code Structure
@@ -20,18 +21,19 @@ ChatMultiAI is a Chrome browser extension built with Plasmo framework that allow
 chat-multi-ai/
 ├── src/
 │   ├── components/
-│   │   └── ui/
-│   │       └── button.tsx           # Reusable button component
-│   │   ├── lib/
-│   │   │   └── utils.ts                 # Utility functions
-│   │   ├── sidepanel.tsx                # Main SidePanel component
-│   │   ├── content.tsx                  # Content script
-│   │   ├── popup.tsx                    # Popup component
-│   │   └── style.css                    # Global styles
-│   ├── assets/                          # Extension icons and assets
-│   ├── tailwind.config.js               # TailwindCSS configuration
-│   ├── package.json                     # Project dependencies and manifest
-│   └── README.md                        # Project documentation
+│   │   ├── ui/
+│   │   │   └── button.tsx           # Reusable button component
+│   │   └── theme-provider.tsx       # Theme provider for light/dark mode
+│   ├── lib/
+│   │   └── utils.ts                 # Utility functions
+│   ├── background.ts                # Background script for extension
+│   ├── sidepanel.tsx                # Main SidePanel component
+│   ├── content.tsx                  # Content script
+│   └── style.css                    # Global styles
+├── assets/                          # Extension icons and assets
+├── tailwind.config.js               # TailwindCSS configuration
+├── package.json                     # Project dependencies and manifest
+└── README.md                        # Project documentation
 ```
 
 ## Components
@@ -44,6 +46,7 @@ The main component of the extension, providing the user interface within Chrome'
 - Toggle functionality to select/deselect AI providers
 - Text area for entering prompts
 - Send functionality that opens selected AI platforms in new tabs
+- System-based theme switching (light/dark mode)
 
 ```typescript
 // Key state management
@@ -75,6 +78,51 @@ const handleSendPrompt = () => {
   
   setPrompt("")
 }
+```
+
+### Theme Detection (ThemeDetector component)
+
+Automatically detects system theme preference and updates the UI accordingly:
+
+```typescript
+const ThemeDetector = ({ children }: { children: React.ReactNode }) => {
+  const { setTheme } = useTheme()
+
+  useEffect(() => {
+    // Check if system prefers dark mode
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+    
+    // Set theme based on system preference
+    const updateTheme = (e: MediaQueryListEvent | MediaQueryList) => {
+      setTheme(e.matches ? "dark" : "light")
+    }
+    
+    // Set initial theme
+    updateTheme(mediaQuery)
+    
+    // Listen for theme changes
+    mediaQuery.addEventListener("change", updateTheme)
+    
+    return () => {
+      mediaQuery.removeEventListener("change", updateTheme)
+    }
+  }, [setTheme])
+
+  return <>{children}</>
+}
+```
+
+### Background Script (background.ts)
+
+Handles extension installation and sets up the SidePanel behavior:
+
+```typescript
+chrome.runtime.onInstalled.addListener((details) => {
+  console.log('Extension installation reason:', details.reason);
+  chrome.sidePanel
+    .setPanelBehavior({ openPanelOnActionClick: true })
+    .catch((error) => console.error(error));
+});
 ```
 
 ### Button Component (components/ui/button.tsx)
@@ -117,26 +165,14 @@ Color scheme variables are defined in CSS using HSL values:
 The extension is configured in `package.json` with the following key settings:
 
 ```json
-"manifest": {
-  "host_permissions": [
-    "https://*/*"
-  ],
-  "side_panel": {
-    "default_path": "sidepanel.html"
-  },
-  "permissions": [
-    "sidePanel"
-  ],
-  "action": {
-    "default_title": "ChatMultiAI",
-    "default_icon": {
-      "16": "assets/icon16.png",
-      "32": "assets/icon32.png",
-      "48": "assets/icon48.png",
-      "128": "assets/icon128.png"
-    }
+  "manifest": {
+    "host_permissions": [
+      "<all_urls>"
+    ],
+    "permissions": [
+      "sidePanel"
+    ]
   }
-}
 ```
 
 ## AI Providers

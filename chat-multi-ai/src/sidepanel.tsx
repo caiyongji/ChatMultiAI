@@ -1,8 +1,10 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import cssText from "data-text:~style.css"
 import type { PlasmoCSConfig } from "plasmo"
+import { useTheme } from "next-themes"
 
 import { Button } from "./components/ui/button"
+import { ThemeProvider } from "./components/theme-provider"
 
 export const config: PlasmoCSConfig = {
   css: ["font-src: self;"]
@@ -23,7 +25,33 @@ type AiProvider = {
   url: string
 }
 
-const ChatMultiAI = () => {
+const ThemeDetector = ({ children }: { children: React.ReactNode }) => {
+  const { setTheme } = useTheme()
+
+  useEffect(() => {
+    // Check if system prefers dark mode
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+    
+    // Set theme based on system preference
+    const updateTheme = (e: MediaQueryListEvent | MediaQueryList) => {
+      setTheme(e.matches ? "dark" : "light")
+    }
+    
+    // Set initial theme
+    updateTheme(mediaQuery)
+    
+    // Listen for theme changes
+    mediaQuery.addEventListener("change", updateTheme)
+    
+    return () => {
+      mediaQuery.removeEventListener("change", updateTheme)
+    }
+  }, [setTheme])
+
+  return <>{children}</>
+}
+
+const ChatMultiAIContent = () => {
   const [prompt, setPrompt] = useState<string>("")
   const [aiProviders, setAiProviders] = useState<AiProvider[]>([
     {
@@ -117,6 +145,16 @@ const ChatMultiAI = () => {
         Send to AI providers
       </Button>
     </div>
+  )
+}
+
+const ChatMultiAI = () => {
+  return (
+    <ThemeProvider>
+      <ThemeDetector>
+        <ChatMultiAIContent />
+      </ThemeDetector>
+    </ThemeProvider>
   )
 }
 
