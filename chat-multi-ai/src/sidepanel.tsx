@@ -2,7 +2,7 @@ import "./globals.css"
 import { useState, useEffect } from "react"
 // import cssText from "data-text:@/globals.css"
 import type { PlasmoCSConfig } from "plasmo"
-import { Moon, Sun, Send, MessageSquare, Zap, Sparkles, Bot } from "lucide-react"
+import { Moon, Sun, Send, MessageSquare, Zap, Sparkles, Bot, Monitor } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -12,16 +12,26 @@ import { Switch } from "@/components/ui/switch"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-// 初始主题检测脚本
+// 初始主题检测脚本 - 现在支持存储的主题偏好
 const initTheme = `
   (function() {
-    const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const isDarkMode = darkModeMediaQuery.matches;
+    // 从localStorage读取主题偏好
+    const storedTheme = localStorage.getItem('theme');
     
-    if (isDarkMode) {
+    if (storedTheme === 'dark') {
       document.documentElement.classList.add('dark');
-    } else {
+    } else if (storedTheme === 'light') {
       document.documentElement.classList.remove('dark');
+    } else {
+      // 如果是'system'或未设置，则跟随系统
+      const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const isDarkMode = darkModeMediaQuery.matches;
+      
+      if (isDarkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }
   })();
 `;
@@ -46,6 +56,12 @@ export const config: PlasmoCSConfig = {
 
 export const getShadowHostId = () => "plasmo-shadow-host"
 
+// 主题类型
+type Theme = 'light' | 'dark' | 'system';
+
+// 主题顺序：按照点击循环顺序定义
+const themeOrder: Theme[] = ['light', 'dark', 'system'];
+
 interface AIProvider {
   id: string
   name: string
@@ -57,50 +73,96 @@ interface AIProvider {
 }
 
 const ThemeToggle = () => {
-  const [isDark, setIsDark] = useState(false)
+  const [theme, setTheme] = useState<Theme>('system')
   
-  // 直接检测并设置暗黑模式
+  // 从localStorage获取主题及应用
   useEffect(() => {
-    // 初始化主题：检查是否有暗黑模式类或系统偏好
-    const isDarkMode = document.documentElement.classList.contains('dark') || 
-      window.matchMedia('(prefers-color-scheme: dark)').matches
-    
-    setIsDark(isDarkMode)
-    
-    // 应用初始主题
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
+    // 从localStorage获取存储的主题
+    const storedTheme = localStorage.getItem('theme') as Theme | null;
+    if (storedTheme && themeOrder.includes(storedTheme)) {
+      setTheme(storedTheme);
     }
-  }, [])
+    
+    // 创建媒体查询来检测系统主题变化
+    const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    // 当主题为'system'时应用系统主题
+    const applySystemTheme = (e: MediaQueryListEvent | MediaQueryList) => {
+      if (theme === 'system' || !localStorage.getItem('theme')) {
+        if (e.matches) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }
+    };
+    
+    // 初始应用系统主题（如果选择了系统主题）
+    applySystemTheme(darkModeMediaQuery);
+    
+    // 监听系统主题变化
+    darkModeMediaQuery.addEventListener('change', applySystemTheme);
+    
+    return () => {
+      darkModeMediaQuery.removeEventListener('change', applySystemTheme);
+    };
+  }, [theme]);
   
-  // 切换主题
-  const toggleTheme = () => {
-    if (isDark) {
-      document.documentElement.classList.remove('dark')
-    } else {
-      document.documentElement.classList.add('dark')
+  // 应用主题设置
+  const applyTheme = (newTheme: Theme) => {
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else if (newTheme === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else if (newTheme === 'system') {
+      // 如果是系统主题，则根据系统偏好设置
+      const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (isDarkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }
-    setIsDark(!isDark)
-  }
+  };
+  
+  // 循环切换主题
+  const toggleTheme = () => {
+    // 找到当前主题在数组中的索引
+    const currentIndex = themeOrder.indexOf(theme);
+    // 计算下一个主题索引（循环）
+    const nextIndex = (currentIndex + 1) % themeOrder.length;
+    // 获取下一个主题
+    const nextTheme = themeOrder[nextIndex];
+    
+    // 设置新主题
+    setTheme(nextTheme);
+    localStorage.setItem('theme', nextTheme);
+    applyTheme(nextTheme);
+  };
+  
+  // 获取当前主题图标
+  const getThemeIcon = () => {
+    switch(theme) {
+      case 'light': return <Sun className="h-4 w-4" />;
+      case 'dark': return <Moon className="h-4 w-4" />;
+      case 'system': return <Monitor className="h-4 w-4" />;
+      default: return <Sun className="h-4 w-4" />;
+    }
+  };
   
   return (
     <Button
       variant="ghost"
       size="icon"
-      onClick={toggleTheme}
       className="rounded-full h-8 w-8"
+      onClick={toggleTheme}
+      title={`Theme: ${theme.charAt(0).toUpperCase() + theme.slice(1)}`} // 添加标题提示当前主题
     >
-      {isDark ? (
-        <Sun className="h-4 w-4" />
-      ) : (
-        <Moon className="h-4 w-4" />
-      )}
+      {getThemeIcon()}
       <span className="sr-only">Toggle theme</span>
     </Button>
-  )
-}
+  );
+};
 
 const ChatMultiAIContent = () => {
   const [prompt, setPrompt] = useState<string>("")
