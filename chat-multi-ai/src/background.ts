@@ -33,6 +33,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       })
     })
     
+    // Set a timeout to clear the prompt after all tabs have been processed
+    // This ensures we don't auto-fill if the user reopens these sites later
+    setTimeout(() => {
+      currentPrompt = ""
+      console.log("Cleared prompt from background script memory")
+    }, 30000) // Clear after 30 seconds, giving tabs time to load
+    
+    sendResponse({ success: true })
+  }
+  
+  // Handle notification that a prompt has been sent successfully
+  if (message.type === "PROMPT_SENT") {
+    // Clear the prompt for this specific tab
+    // This helps prevent filling multiple times within the same tab
+    console.log("Received notification that prompt was sent")
     sendResponse({ success: true })
   }
   
