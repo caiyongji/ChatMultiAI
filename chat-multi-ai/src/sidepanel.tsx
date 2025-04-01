@@ -1,9 +1,11 @@
 import "./globals.css"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 // import cssText from "data-text:@/globals.css"
 import type { PlasmoCSConfig } from "plasmo"
-import { Moon, Sun, Send, MessageSquare, Zap, Sparkles, Bot, Monitor } from "lucide-react"
+import { Moon, Sun, Send, Monitor } from "lucide-react"
 import logoIcon from "data-base64:~images/logo.png"
+import { useTheme } from "next-themes"
+import { ThemeProvider } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -12,36 +14,17 @@ import { Switch } from "@/components/ui/switch"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-// 初始主题检测脚本 - 现在支持存储的主题偏好
-const initTheme = `
-  (function() {
-    // 从localStorage读取主题偏好
-    const storedTheme = localStorage.getItem('theme');
-    
-    if (storedTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else if (storedTheme === 'light') {
-      document.documentElement.classList.remove('dark');
-    } else {
-      // 如果是'system'或未设置，则跟随系统
-      const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const isDarkMode = darkModeMediaQuery.matches;
-      
-      if (isDarkMode) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    }
-  })();
-`;
-
-// 添加初始化脚本到页面头部
-export const getStyle = () => {
-  const script = document.createElement("script");
-  script.textContent = initTheme;
-  return script;
-};
+// 导入AI提供商的图标
+import chatgptLightIcon from "data-base64:~images/chatgpt-light.svg"
+import chatgptDarkIcon from "data-base64:~images/chatgpt-dark.svg"
+import claudeLightIcon from "data-base64:~images/claude-light.svg"
+import claudeDarkIcon from "data-base64:~images/claude-dark.svg"
+import geminiLightIcon from "data-base64:~images/gemini-light.svg"
+import geminiDarkIcon from "data-base64:~images/gemini-dark.svg"
+import grokLightIcon from "data-base64:~images/grok-light.svg"
+import grokDarkIcon from "data-base64:~images/grok-dark.svg"
+import deepseekLightIcon from "data-base64:~images/deepseek-light.svg"
+import deepseekDarkIcon from "data-base64:~images/deepseek-dark.svg"
 
 export const config: PlasmoCSConfig = {
   css: ["font-src: self;"]
@@ -73,82 +56,37 @@ interface AIProvider {
 }
 
 const ThemeToggle = () => {
-  const [theme, setTheme] = useState<Theme>('system')
+  const { theme, setTheme } = useTheme()
   
-  // 从localStorage获取主题及应用
+  // 初始化主题
   useEffect(() => {
-    // 从localStorage获取存储的主题
-    const storedTheme = localStorage.getItem('theme') as Theme | null;
-    if (storedTheme && themeOrder.includes(storedTheme)) {
-      setTheme(storedTheme);
+    // 这里可以改成从chrome.storage读取
+    const savedTheme = localStorage.getItem('theme')
+    if (savedTheme && ['light', 'dark', 'system'].includes(savedTheme)) {
+      setTheme(savedTheme)
     }
-    
-    // 创建媒体查询来检测系统主题变化
-    const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
-    // 当主题为'system'时应用系统主题
-    const applySystemTheme = (e: MediaQueryListEvent | MediaQueryList) => {
-      if (theme === 'system' || !localStorage.getItem('theme')) {
-        if (e.matches) {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
-      }
-    };
-    
-    // 初始应用系统主题（如果选择了系统主题）
-    applySystemTheme(darkModeMediaQuery);
-    
-    // 监听系统主题变化
-    darkModeMediaQuery.addEventListener('change', applySystemTheme);
-    
-    return () => {
-      darkModeMediaQuery.removeEventListener('change', applySystemTheme);
-    };
-  }, [theme]);
+  }, [setTheme])
   
-  // 应用主题设置
-  const applyTheme = (newTheme: Theme) => {
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else if (newTheme === 'light') {
-      document.documentElement.classList.remove('dark');
-    } else if (newTheme === 'system') {
-      // 如果是系统主题，则根据系统偏好设置
-      const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (isDarkMode) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    }
-  };
-  
-  // 循环切换主题
+  // Function to cycle through themes
   const toggleTheme = () => {
-    // 找到当前主题在数组中的索引
-    const currentIndex = themeOrder.indexOf(theme);
-    // 计算下一个主题索引（循环）
-    const nextIndex = (currentIndex + 1) % themeOrder.length;
-    // 获取下一个主题
-    const nextTheme = themeOrder[nextIndex];
-    
-    // 设置新主题
-    setTheme(nextTheme);
-    localStorage.setItem('theme', nextTheme);
-    applyTheme(nextTheme);
-  };
+    if (theme === 'light') {
+      setTheme('dark')
+    } else if (theme === 'dark') {
+      setTheme('system')
+    } else {
+      setTheme('light')
+    }
+  }
   
-  // 获取当前主题图标
+  // Get the appropriate icon for the current theme
   const getThemeIcon = () => {
     switch(theme) {
-      case 'light': return <Sun className="h-4 w-4" />;
-      case 'dark': return <Moon className="h-4 w-4" />;
-      case 'system': return <Monitor className="h-4 w-4" />;
-      default: return <Sun className="h-4 w-4" />;
+      case 'light': return <Sun className="h-4 w-4" />
+      case 'dark': return <Moon className="h-4 w-4" />
+      case 'system': return <Monitor className="h-4 w-4" />
+      default: return <Sun className="h-4 w-4" />
     }
-  };
+  }
   
   return (
     <Button
@@ -156,32 +94,47 @@ const ThemeToggle = () => {
       size="icon"
       className="rounded-full h-8 w-8"
       onClick={toggleTheme}
-      title={`Theme: ${theme.charAt(0).toUpperCase() + theme.slice(1)}`} // 添加标题提示当前主题
+      title={`Theme: ${theme ? theme.charAt(0).toUpperCase() + theme.slice(1) : 'System'}`}
     >
       {getThemeIcon()}
       <span className="sr-only">Toggle theme</span>
     </Button>
-  );
-};
+  )
+}
 
 const ChatMultiAIContent = () => {
   const [prompt, setPrompt] = useState<string>("")
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   
-  // Helper function to get icon for provider
-  const getIconForProvider = (providerId: string) => {
-    switch(providerId) {
-      case "chatgpt": return <MessageSquare className="h-4 w-4 text-emerald-500" />;
-      case "grok": return <Zap className="h-4 w-4 text-blue-500" />;
-      case "deepseek": return <Sparkles className="h-4 w-4 text-purple-500" />;
-      case "claude": return <Bot className="h-4 w-4 text-amber-500" />;
-      case "gemini": return <Sparkles className="h-4 w-4 text-blue-600" />;
-      default: return <MessageSquare className="h-4 w-4" />;
-    }
-  };
+  // Get theme information from next-themes
+  const { theme, systemTheme } = useTheme()
+  const currentTheme = theme === 'system' ? systemTheme : theme
+  const isDark = currentTheme === 'dark'
+
+  console.log("currentTheme: ", currentTheme)
   
-  // Default providers configuration
-  const getDefaultProviders = (): AIProvider[] => [
+  // Helper function to get icon for provider based on theme, memoized with useCallback
+  const getIconForProvider = useCallback((providerId: string) => {
+    const textColor = isDark ? "text-white-400" : "text-black-400"
+    
+    switch(providerId) {
+      case "chatgpt": 
+        return <img src={isDark ? chatgptDarkIcon : chatgptLightIcon} className={`h-5 w-5 ${textColor}`} alt="ChatGPT" />
+      case "grok": 
+        return <img src={isDark ? grokDarkIcon : grokLightIcon} className={`h-5 w-5 ${textColor}`} alt="Grok" />
+      case "deepseek": 
+        return <img src={isDark ? deepseekDarkIcon : deepseekLightIcon} className={`h-5 w-5 ${textColor}`} alt="DeepSeek" />
+      case "claude": 
+        return <img src={isDark ? claudeDarkIcon : claudeLightIcon} className={`h-5 w-5 ${textColor}`} alt="Claude" />
+      case "gemini": 
+        return <img src={isDark ? geminiDarkIcon : geminiLightIcon} className={`h-5 w-5 ${textColor}`} alt="Gemini" />
+      default: 
+        return <img src={isDark ? chatgptDarkIcon : chatgptLightIcon} className={`h-5 w-5 ${textColor}`} alt="AI" />
+    }
+  }, [isDark]) // Only re-create when isDark changes
+  
+  // Default providers configuration with useCallback
+  const getDefaultProviders = useCallback((): AIProvider[] => [
     {
       id: "chatgpt",
       name: "ChatGPT",
@@ -227,45 +180,52 @@ const ChatMultiAIContent = () => {
       models: ["Gemini Pro", "Gemini Ultra"],
       selected: "Gemini Ultra"
     }
-  ];
+  ], [getIconForProvider]) // Depend on getIconForProvider
   
   // Initialize providers state with saved data or defaults
   const [providers, setProviders] = useState<AIProvider[]>(() => {
-    // Try to load saved providers from localStorage
-    const savedProviders = localStorage.getItem('chatmultiai_providers');
-    if (savedProviders) {
-      try {
-        // Parse saved providers and restore icons
-        const parsed = JSON.parse(savedProviders);
-        return parsed.map((provider: any) => ({
+    // Default to an empty array initially, will be populated in useEffect
+    return []
+  })
+  
+  // Load providers from localStorage on component mount
+  useEffect(() => {
+    try {
+      const savedProviders = localStorage.getItem('chatmultiai_providers')
+      if (savedProviders) {
+        const parsed = JSON.parse(savedProviders)
+        setProviders(parsed.map((provider: any) => ({
           ...provider,
           icon: getIconForProvider(provider.id)
-        }));
-      } catch (e) {
-        console.error("Failed to parse saved providers:", e);
+        })))
+      } else {
+        setProviders(getDefaultProviders())
       }
+    } catch (e) {
+      console.error("Failed to load providers:", e)
+      setProviders(getDefaultProviders())
     }
-    
-    // Default providers if none are saved
-    return getDefaultProviders();
-  });
-
+  }, [isDark, getIconForProvider]) // Re-run when theme changes to update icons
+  
   // Save providers to localStorage whenever they change
   useEffect(() => {
-    // We need to serialize the providers without the React node icons
+    // Skip saving if providers is empty (initial state)
+    if (providers.length === 0) return
+    
+    // Serialize providers without the React node icons
     const serializableProviders = providers.map(provider => ({
       id: provider.id,
       name: provider.name,
       enabled: provider.enabled,
       url: provider.url,
-      // Don't store the icon React node
       models: provider.models,
       selected: provider.selected
-    }));
+    }))
     
-    localStorage.setItem('chatmultiai_providers', JSON.stringify(serializableProviders));
-  }, [providers]);
-
+    localStorage.setItem('chatmultiai_providers', JSON.stringify(serializableProviders))
+  }, [providers])
+  
+  // Toggle provider enabled state
   const toggleProvider = (id: string) => {
     setProviders(
       providers.map((provider) =>
@@ -275,7 +235,8 @@ const ChatMultiAIContent = () => {
       )
     )
   }
-
+  
+  // Change selected model for a provider
   const handleModelChange = (id: string, model: string) => {
     setProviders(
       providers.map((provider) =>
@@ -285,7 +246,8 @@ const ChatMultiAIContent = () => {
       )
     )
   }
-
+  
+  // Handle sending prompt to AI providers
   const handleSendPrompt = () => {
     if (!prompt.trim()) return
     
@@ -293,7 +255,7 @@ const ChatMultiAIContent = () => {
     
     if (enabledProviders.length === 0) return
     
-    // 发送消息到background script，带上URLs和prompt
+    // Send message to background script with URLs and prompt
     chrome.runtime.sendMessage({
       type: "OPEN_AI_PROVIDERS",
       urls: enabledProviders.map(provider => provider.url),
@@ -301,30 +263,30 @@ const ChatMultiAIContent = () => {
     }, (response) => {
       if (response && response.success) {
         console.log("Successfully sent prompt to background script")
-        // 发送后清空输入框
+        // Clear input after sending
         setPrompt("")
       } else {
         console.error("Failed to send prompt to background script")
       }
     })
   }
-
+  
   // Auto-resize textarea when content changes
   useEffect(() => {
     if (textareaRef.current) {
       // Reset height to auto to get the correct scrollHeight
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = 'auto'
       // Set new height based on content (with a maximum of 200px)
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`
     }
-  }, [prompt]);
-
+  }, [prompt])
+  
   return (
     <div className="flex flex-col h-screen bg-background">
       <div className="p-4 flex items-center justify-between border-b">
         <div className="flex items-center space-x-2">
           <div className="rounded-md p-1">
-            <img src={logoIcon} className="h-8 w-8 object-contain" alt="ChatMultiAI logo" />
+            <img src={logoIcon} className="h-6 w-6 object-contain" alt="ChatMultiAI logo" />
           </div>
           <h1 className="text-xl font-semibold">ChatMultiAI</h1>
         </div>
@@ -387,10 +349,10 @@ const ChatMultiAIContent = () => {
             if (e.key === 'Enter' && !e.shiftKey) {
               // Don't send if in the middle of composition (e.g., Chinese input)
               if (!e.nativeEvent.isComposing) {
-                e.preventDefault(); // Prevent new line
+                e.preventDefault() // Prevent new line
                 // Only trigger send if prompt is not empty and at least one provider is enabled
                 if (prompt.trim() && providers.some((p) => p.enabled)) {
-                  handleSendPrompt();
+                  handleSendPrompt()
                 }
               }
             }
@@ -411,7 +373,9 @@ const ChatMultiAIContent = () => {
 
 const ChatMultiAI = () => {
   return (
-    <ChatMultiAIContent />
+    <ThemeProvider>
+      <ChatMultiAIContent />
+    </ThemeProvider>
   )
 }
 
