@@ -323,10 +323,10 @@ const ChatMultiAIContent = () => {
     <div className="flex flex-col h-screen bg-background">
       <div className="p-4 flex items-center justify-between border-b">
         <div className="flex items-center space-x-2">
-          <div className="bg-primary rounded-md p-1 text-primary-foreground">
-            <img src={logoIcon} className="h-4 w-4 object-contain" alt="Chat Multi AI logo" />
+          <div className="rounded-md p-1">
+            <img src={logoIcon} className="h-8 w-8 object-contain" alt="ChatMultiAI logo" />
           </div>
-          <h1 className="text-xl font-semibold">Chat Multi AI</h1>
+          <h1 className="text-xl font-semibold">ChatMultiAI</h1>
         </div>
         <ThemeToggle />
       </div>
