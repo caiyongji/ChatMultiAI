@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 // import cssText from "data-text:@/globals.css"
 import type { PlasmoCSConfig } from "plasmo"
 import { Moon, Sun, Send, MessageSquare, Zap, Sparkles, Bot, Monitor } from "lucide-react"
-
+import logoIcon from "data-base64:~images/logo.png"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -242,9 +242,9 @@ const ChatMultiAIContent = () => {
       <div className="p-4 flex items-center justify-between border-b">
         <div className="flex items-center space-x-2">
           <div className="bg-primary rounded-md p-1 text-primary-foreground">
-            <Sparkles className="h-4 w-4" />
+            <img src={logoIcon} className="h-4 w-4 object-contain" alt="Chat Multi AI logo" />
           </div>
-          <h1 className="text-xl font-semibold">ChatMultiAI</h1>
+          <h1 className="text-xl font-semibold">Chat Multi AI</h1>
         </div>
         <ThemeToggle />
       </div>
