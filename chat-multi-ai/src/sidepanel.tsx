@@ -15,16 +15,16 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 // 导入AI提供商的图标
-import chatgptLightIcon from "data-base64:~images/chatgpt-light.svg"
-import chatgptDarkIcon from "data-base64:~images/chatgpt-dark.svg"
-import claudeLightIcon from "data-base64:~images/claude-light.svg"
-import claudeDarkIcon from "data-base64:~images/claude-dark.svg"
-import geminiLightIcon from "data-base64:~images/gemini-light.svg"
-import geminiDarkIcon from "data-base64:~images/gemini-dark.svg"
-import grokLightIcon from "data-base64:~images/grok-light.svg"
-import grokDarkIcon from "data-base64:~images/grok-dark.svg"
-import deepseekLightIcon from "data-base64:~images/deepseek-light.svg"
-import deepseekDarkIcon from "data-base64:~images/deepseek-dark.svg"
+import chatgptLightIcon from "data-base64:~images/chatgpt-light.png"
+import chatgptDarkIcon from "data-base64:~images/chatgpt-dark.png"
+import claudeLightIcon from "data-base64:~images/claude-light.png"
+import claudeDarkIcon from "data-base64:~images/claude-dark.png"
+import geminiLightIcon from "data-base64:~images/gemini-light.png"
+import geminiDarkIcon from "data-base64:~images/gemini-dark.png"
+import grokLightIcon from "data-base64:~images/grok-light.png"
+import grokDarkIcon from "data-base64:~images/grok-dark.png"
+import deepseekLightIcon from "data-base64:~images/deepseek-light.png"
+import deepseekDarkIcon from "data-base64:~images/deepseek-dark.png"
 
 export const config: PlasmoCSConfig = {
   css: ["font-src: self;"]
