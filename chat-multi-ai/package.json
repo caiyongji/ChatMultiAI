@@ -42,11 +42,18 @@
     "typescript": "5.3.3"
   },
   "manifest": {
-    "host_permissions": [
-      "<all_urls>"
-    ],
     "permissions": [
-      "sidePanel"
+      "sidePanel",
+      "storage",
+      "tabs",
+      "scripting"
+    ],
+    "host_permissions": [
+      "https://chatgpt.com/*",
+      "https://grok.com/*",
+      "https://chat.deepseek.com/*",
+      "https://claude.ai/*",
+      "https://gemini.google.com/*"
     ]
   }
 }

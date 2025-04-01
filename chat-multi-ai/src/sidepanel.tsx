@@ -171,7 +171,7 @@ const ChatMultiAIContent = () => {
       id: "chatgpt",
       name: "ChatGPT",
       enabled: true,
-      url: "https://chat.openai.com/",
+      url: "https://chatgpt.com/",
       icon: <MessageSquare className="h-4 w-4 text-emerald-500" />,
       models: ["GPT-3.5", "GPT-4", "GPT-4o"],
       selected: "GPT-4o"
@@ -180,16 +180,16 @@ const ChatMultiAIContent = () => {
       id: "grok",
       name: "Grok",
       enabled: false,
-      url: "https://grok.x.ai/",
+      url: "https://grok.com/",
       icon: <Zap className="h-4 w-4 text-blue-500" />,
       models: ["Grok-1", "Grok-2"],
       selected: "Grok-2"
     },
     {
-      id: "deepseq",
-      name: "DeepSeq",
+      id: "deepseek",
+      name: "DeepSeek",
       enabled: false,
-      url: "https://deepseek.ai/",
+      url: "https://chat.deepseek.com/",
       icon: <Sparkles className="h-4 w-4 text-purple-500" />,
       models: ["DeepSeek-7B", "DeepSeek-67B"],
       selected: "DeepSeek-67B"
@@ -202,6 +202,15 @@ const ChatMultiAIContent = () => {
       icon: <Bot className="h-4 w-4 text-amber-500" />,
       models: ["Claude 3 Opus", "Claude 3 Sonnet", "Claude 3 Haiku"],
       selected: "Claude 3 Sonnet"
+    },
+    {
+      id: "gemini",
+      name: "Gemini",
+      enabled: false,
+      url: "https://gemini.google.com/",
+      icon: <Sparkles className="h-4 w-4 text-blue-600" />,
+      models: ["Gemini Pro", "Gemini Ultra"],
+      selected: "Gemini Ultra"
     }
   ])
 
@@ -230,11 +239,25 @@ const ChatMultiAIContent = () => {
     
     const enabledProviders = providers.filter((provider) => provider.enabled)
     
-    enabledProviders.forEach((provider) => {
-      window.open(provider.url, "_blank")
-    })
+    if (enabledProviders.length === 0) return
     
-    setPrompt("")
+    // Store the prompt in localStorage for content script to access
+    localStorage.setItem("chatmultiai_prompt", prompt)
+    
+    // Send message to background script with URLs and prompt
+    chrome.runtime.sendMessage({
+      type: "OPEN_AI_PROVIDERS",
+      urls: enabledProviders.map(provider => provider.url),
+      prompt: prompt
+    }, (response) => {
+      if (response && response.success) {
+        console.log("Successfully sent prompt to background script")
+        // Clear the prompt input after sending
+        setPrompt("")
+      } else {
+        console.error("Failed to send prompt to background script")
+      }
+    })
   }
 
   return (
