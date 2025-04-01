@@ -167,13 +167,27 @@ const ThemeToggle = () => {
 const ChatMultiAIContent = () => {
   const [prompt, setPrompt] = useState<string>("")
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const [providers, setProviders] = useState<AIProvider[]>([
+  
+  // Helper function to get icon for provider
+  const getIconForProvider = (providerId: string) => {
+    switch(providerId) {
+      case "chatgpt": return <MessageSquare className="h-4 w-4 text-emerald-500" />;
+      case "grok": return <Zap className="h-4 w-4 text-blue-500" />;
+      case "deepseek": return <Sparkles className="h-4 w-4 text-purple-500" />;
+      case "claude": return <Bot className="h-4 w-4 text-amber-500" />;
+      case "gemini": return <Sparkles className="h-4 w-4 text-blue-600" />;
+      default: return <MessageSquare className="h-4 w-4" />;
+    }
+  };
+  
+  // Default providers configuration
+  const getDefaultProviders = (): AIProvider[] => [
     {
       id: "chatgpt",
       name: "ChatGPT",
       enabled: true,
       url: "https://chatgpt.com/",
-      icon: <MessageSquare className="h-4 w-4 text-emerald-500" />,
+      icon: getIconForProvider("chatgpt"),
       models: ["GPT-3.5", "GPT-4", "GPT-4o"],
       selected: "GPT-4o"
     },
@@ -182,7 +196,7 @@ const ChatMultiAIContent = () => {
       name: "Grok",
       enabled: false,
       url: "https://grok.com/",
-      icon: <Zap className="h-4 w-4 text-blue-500" />,
+      icon: getIconForProvider("grok"),
       models: ["Grok-1", "Grok-2"],
       selected: "Grok-2"
     },
@@ -191,7 +205,7 @@ const ChatMultiAIContent = () => {
       name: "DeepSeek",
       enabled: false,
       url: "https://chat.deepseek.com/",
-      icon: <Sparkles className="h-4 w-4 text-purple-500" />,
+      icon: getIconForProvider("deepseek"),
       models: ["DeepSeek-7B", "DeepSeek-67B"],
       selected: "DeepSeek-67B"
     },
@@ -200,7 +214,7 @@ const ChatMultiAIContent = () => {
       name: "Claude",
       enabled: false,
       url: "https://claude.ai/",
-      icon: <Bot className="h-4 w-4 text-amber-500" />,
+      icon: getIconForProvider("claude"),
       models: ["Claude 3 Opus", "Claude 3 Sonnet", "Claude 3 Haiku"],
       selected: "Claude 3 Sonnet"
     },
@@ -209,11 +223,48 @@ const ChatMultiAIContent = () => {
       name: "Gemini",
       enabled: false,
       url: "https://gemini.google.com/",
-      icon: <Sparkles className="h-4 w-4 text-blue-600" />,
+      icon: getIconForProvider("gemini"),
       models: ["Gemini Pro", "Gemini Ultra"],
       selected: "Gemini Ultra"
     }
-  ])
+  ];
+  
+  // Initialize providers state with saved data or defaults
+  const [providers, setProviders] = useState<AIProvider[]>(() => {
+    // Try to load saved providers from localStorage
+    const savedProviders = localStorage.getItem('chatmultiai_providers');
+    if (savedProviders) {
+      try {
+        // Parse saved providers and restore icons
+        const parsed = JSON.parse(savedProviders);
+        return parsed.map((provider: any) => ({
+          ...provider,
+          icon: getIconForProvider(provider.id)
+        }));
+      } catch (e) {
+        console.error("Failed to parse saved providers:", e);
+      }
+    }
+    
+    // Default providers if none are saved
+    return getDefaultProviders();
+  });
+
+  // Save providers to localStorage whenever they change
+  useEffect(() => {
+    // We need to serialize the providers without the React node icons
+    const serializableProviders = providers.map(provider => ({
+      id: provider.id,
+      name: provider.name,
+      enabled: provider.enabled,
+      url: provider.url,
+      // Don't store the icon React node
+      models: provider.models,
+      selected: provider.selected
+    }));
+    
+    localStorage.setItem('chatmultiai_providers', JSON.stringify(serializableProviders));
+  }, [providers]);
 
   const toggleProvider = (id: string) => {
     setProviders(
@@ -281,7 +332,7 @@ const ChatMultiAIContent = () => {
       </div>
 
       <div className="flex-grow overflow-auto p-4">
-        <Accordion type="multiple" defaultValue={providers.filter(p => p.enabled).map(p => p.id)} className="mb-4">
+        <Accordion type="multiple" defaultValue={[]} className="mb-4">
           {providers.map((provider) => (
             <AccordionItem value={provider.id} key={provider.id}>
               <div className="flex items-center">
