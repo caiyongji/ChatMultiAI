@@ -1,0 +1,9 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+- use pnpm instead of npm command
+- shadcn add component: npx shadcn@latest add button(do not use shadcn-ui@latest command)
