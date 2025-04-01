@@ -241,10 +241,7 @@ const ChatMultiAIContent = () => {
     
     if (enabledProviders.length === 0) return
     
-    // Store the prompt in localStorage for content script to access
-    localStorage.setItem("chatmultiai_prompt", prompt)
-    
-    // Send message to background script with URLs and prompt
+    // 发送消息到background script，带上URLs和prompt
     chrome.runtime.sendMessage({
       type: "OPEN_AI_PROVIDERS",
       urls: enabledProviders.map(provider => provider.url),
@@ -252,7 +249,7 @@ const ChatMultiAIContent = () => {
     }, (response) => {
       if (response && response.success) {
         console.log("Successfully sent prompt to background script")
-        // Clear the prompt input after sending
+        // 发送后清空输入框
         setPrompt("")
       } else {
         console.error("Failed to send prompt to background script")

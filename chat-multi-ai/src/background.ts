@@ -1,5 +1,7 @@
 // Store the current prompt to share with newly opened tabs
 let currentPrompt = ""
+// 存储每个标签页ID和对应的域名
+const tabDomains = new Map<number, string>()
 
 // Handle extension installation
 chrome.runtime.onInstalled.addListener((details) => {
@@ -28,8 +30,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Open each URL in a new tab
     urls.forEach((url: string) => {
       chrome.tabs.create({ url }, (tab) => {
-        // We'll handle sending the prompt to the tab after it's fully loaded
-        console.log(`Tab ${tab.id} created for ${url}`)
+        // 跟踪每个新标签页及其URL域名
+        if (tab.id) {
+          const domain = new URL(url).hostname
+          tabDomains.set(tab.id, domain)
+          console.log(`Tab ${tab.id} created for ${url} (${domain})`)
+        }
       })
     })
     
@@ -45,9 +51,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   
   // Handle notification that a prompt has been sent successfully
   if (message.type === "PROMPT_SENT") {
-    // Clear the prompt for this specific tab
-    // This helps prevent filling multiple times within the same tab
-    console.log("Received notification that prompt was sent")
+    // 接收到消息后，清除这个标签页的记录
+    if (sender.tab && sender.tab.id) {
+      tabDomains.delete(sender.tab.id)
+      console.log(`Received prompt sent notification for tab ${sender.tab.id}, removed from tracking`)
+    }
     sendResponse({ success: true })
   }
   
@@ -58,15 +66,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   // Check if the tab is fully loaded and we have a prompt to send
   if (changeInfo.status === 'complete' && currentPrompt && tab.url) {
-    // Check if the tab URL matches any of our AI providers
-    const isAIProvider = 
-      tab.url.includes('chatgpt.com') || 
-      tab.url.includes('grok.com') || 
-      tab.url.includes('chat.deepseek.com') || 
-      tab.url.includes('claude.ai') ||
-      tab.url.includes('gemini.google.com')
+    // 检查这个标签页是否是我们正在跟踪的
+    const isDomainTracked = tabDomains.has(tabId)
     
-    if (isAIProvider) {
+    if (isDomainTracked) {
+      console.log(`Tab ${tabId} is ready to receive prompt`)
+      
       // Send the prompt to the content script
       chrome.tabs.sendMessage(tabId, {
         type: "FILL_PROMPT",
@@ -75,5 +80,13 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
         console.log(`Message couldn't be delivered to tab ${tabId} yet, content script may not be ready`)
       })
     }
+  }
+})
+
+// Listen for tab close events to clean up our tracking
+chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
+  if (tabDomains.has(tabId)) {
+    tabDomains.delete(tabId)
+    console.log(`Tab ${tabId} was closed, removed from tracking`)
   }
 }) 

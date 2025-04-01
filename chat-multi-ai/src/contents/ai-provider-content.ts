@@ -159,8 +159,8 @@ async function fillInputBox(prompt: string) {
         console.log("ChatMultiAI: Successfully filled Claude input")
         
         // Auto-submit
-        const sendButton = await waitForElement("button[aria-label='Send Message']")
-        if (sendButton instanceof HTMLButtonElement) {
+        const sendButton = await waitForElement("button[aria-label='Send message']")
+        if (sendButton instanceof HTMLButtonElement && !sendButton.disabled) {
           sendButton.click()
           console.log("ChatMultiAI: Auto-sent prompt to Claude")
           promptWasSent = true
@@ -195,8 +195,8 @@ async function fillInputBox(prompt: string) {
       }
     }
 
-    // Clear the prompt from localStorage after sending
-    localStorage.removeItem("chatmultiai_prompt")
+    // 移除localStorage清理，只使用消息传递
+    // localStorage.removeItem("chatmultiai_prompt")
     
     // Notify background script that the prompt was sent
     if (promptWasSent) {
@@ -215,17 +215,17 @@ async function fillInputBox(prompt: string) {
 async function main() {
   await waitForPageLoad()
   
-  // Get the prompt from localStorage (set by sidepanel)
-  const prompt = localStorage.getItem("chatmultiai_prompt")
-  
-  if (prompt) {
-    await fillInputBox(prompt)
-    // The prompt is now cleared within the fillInputBox function
-  }
+  // 移除localStorage相关代码，只依赖消息传递
+  // const prompt = localStorage.getItem("chatmultiai_prompt")
+  // 
+  // if (prompt) {
+  //   await fillInputBox(prompt)
+  // }
 
   // Listen for messages from the sidepanel via the extension
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === "FILL_PROMPT" && message.prompt) {
+      console.log("ChatMultiAI: Received FILL_PROMPT message:", message.prompt)
       fillInputBox(message.prompt)
       sendResponse({ success: true })
     }
