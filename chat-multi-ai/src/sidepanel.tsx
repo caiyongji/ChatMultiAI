@@ -1,5 +1,5 @@
 import "./globals.css"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 // import cssText from "data-text:@/globals.css"
 import type { PlasmoCSConfig } from "plasmo"
 import { Moon, Sun, Send, MessageSquare, Zap, Sparkles, Bot, Monitor } from "lucide-react"
@@ -166,6 +166,7 @@ const ThemeToggle = () => {
 
 const ChatMultiAIContent = () => {
   const [prompt, setPrompt] = useState<string>("")
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [providers, setProviders] = useState<AIProvider[]>([
     {
       id: "chatgpt",
@@ -257,6 +258,16 @@ const ChatMultiAIContent = () => {
     })
   }
 
+  // Auto-resize textarea when content changes
+  useEffect(() => {
+    if (textareaRef.current) {
+      // Reset height to auto to get the correct scrollHeight
+      textareaRef.current.style.height = 'auto';
+      // Set new height based on content (with a maximum of 200px)
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+    }
+  }, [prompt]);
+
   return (
     <div className="flex flex-col h-screen bg-background">
       <div className="p-4 flex items-center justify-between border-b">
@@ -315,8 +326,9 @@ const ChatMultiAIContent = () => {
 
       <div className="sticky bottom-0 bg-background pt-2 p-4 border-t">
         <Textarea
+          ref={textareaRef}
           placeholder="Type your prompt here..."
-          className="min-h-[100px] resize-none mb-2 focus-visible:ring-primary"
+          className="min-h-[50px] resize-none mb-2 focus-visible:ring-primary overflow-y-auto overflow-x-hidden"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={(e) => {
