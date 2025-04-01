@@ -319,6 +319,19 @@ const ChatMultiAIContent = () => {
           className="min-h-[100px] resize-none mb-2 focus-visible:ring-primary"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={(e) => {
+            // Check if Enter key is pressed without Shift (to allow Shift+Enter for new line)
+            if (e.key === 'Enter' && !e.shiftKey) {
+              // Don't send if in the middle of composition (e.g., Chinese input)
+              if (!e.nativeEvent.isComposing) {
+                e.preventDefault(); // Prevent new line
+                // Only trigger send if prompt is not empty and at least one provider is enabled
+                if (prompt.trim() && providers.some((p) => p.enabled)) {
+                  handleSendPrompt();
+                }
+              }
+            }
+          }}
         />
         <Button 
           className="w-full gap-2 h-10"
