@@ -1,7 +1,7 @@
 {
   "name": "chat-multi-ai",
   "displayName": "ChatMultiAI",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Send prompts to multiple AI assistants at once",
   "author": "caiyongji",
   "scripts": {

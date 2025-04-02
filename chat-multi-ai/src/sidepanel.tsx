@@ -247,6 +247,30 @@ const ChatMultiAIContent = () => {
     )
   }
   
+  // Add toolbar
+  const [autoSend, setAutoSend] = useState(() => {
+    // Load auto-send setting from localStorage
+    const saved = localStorage.getItem('chatmultiai_auto_send')
+    return saved ? JSON.parse(saved) : false
+  })
+
+  // Save auto-send setting to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('chatmultiai_auto_send', JSON.stringify(autoSend))
+  }, [autoSend])
+  
+  // Add follow-up mode toggle with persistence
+  const [followUpMode, setFollowUpMode] = useState(() => {
+    // Load follow-up mode setting from localStorage
+    const saved = localStorage.getItem('chatmultiai_follow_up_mode')
+    return saved ? JSON.parse(saved) : false
+  })
+
+  // Save follow-up mode setting to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('chatmultiai_follow_up_mode', JSON.stringify(followUpMode))
+  }, [followUpMode])
+  
   // Handle sending prompt to AI providers
   const handleSendPrompt = () => {
     if (!prompt.trim()) return
@@ -259,7 +283,9 @@ const ChatMultiAIContent = () => {
     chrome.runtime.sendMessage({
       type: "OPEN_AI_PROVIDERS",
       urls: enabledProviders.map(provider => provider.url),
-      prompt: prompt
+      prompt: prompt,
+      autoSend: autoSend,
+      followUpMode: followUpMode // Add followUpMode setting to the message
     }, (response) => {
       if (response && response.success) {
         console.log("Successfully sent prompt to background script")
@@ -338,6 +364,34 @@ const ChatMultiAIContent = () => {
       </div>
 
       <div className="sticky bottom-0 bg-background pt-2 p-4 border-t">
+        {/* Add toolbar */}
+        <div className="flex items-center justify-end mb-2">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <label htmlFor="follow-up" className="text-sm text-muted-foreground">
+                Follow-up Mode
+              </label>
+              <Switch
+                id="follow-up"
+                checked={followUpMode}
+                onCheckedChange={setFollowUpMode}
+                className="data-[state=checked]:bg-primary"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <label htmlFor="auto-send" className="text-sm text-muted-foreground">
+                Auto-send
+              </label>
+              <Switch
+                id="auto-send"
+                checked={autoSend}
+                onCheckedChange={setAutoSend}
+                className="data-[state=checked]:bg-primary"
+              />
+            </div>
+          </div>
+        </div>
+
         <Textarea
           ref={textareaRef}
           placeholder="Type your prompt here..."

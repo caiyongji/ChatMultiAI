@@ -56,11 +56,11 @@ function waitForElement(selector: string, timeout = 10000): Promise<Element | nu
 }
 
 // Function to fill the input box with prompt text and send it
-async function fillInputBox(prompt: string) {
+async function fillInputBox(prompt: string, autoSend: boolean = false) {
   if (processed) return
   processed = true
 
-  console.log("ChatMultiAI: Attempting to fill input box with prompt:", prompt)
+  console.log("ChatMultiAI: Attempting to fill input box with prompt:", prompt, "autoSend:", autoSend)
 
   try {
     // Different handling based on current domain
@@ -77,12 +77,14 @@ async function fillInputBox(prompt: string) {
           inputBox.dispatchEvent(new Event("input", { bubbles: true }))
           console.log("ChatMultiAI: Successfully filled ChatGPT input")
           
-          // Auto-submit
-          const sendButton = await waitForElement("button[data-testid='send-button']")
-          if (sendButton instanceof HTMLButtonElement && !sendButton.disabled) {
-            sendButton.click()
-            console.log("ChatMultiAI: Auto-sent prompt to ChatGPT")
-            promptWasSent = true
+          // Auto-submit only if autoSend is true
+          if (autoSend) {
+            const sendButton = await waitForElement("button[data-testid='send-button']")
+            if (sendButton instanceof HTMLButtonElement && !sendButton.disabled) {
+              sendButton.click()
+              console.log("ChatMultiAI: Auto-sent prompt to ChatGPT")
+              promptWasSent = true
+            }
           }
         } else {
           // Fallback to find textarea
@@ -92,12 +94,14 @@ async function fillInputBox(prompt: string) {
             textarea.dispatchEvent(new Event("input", { bubbles: true }))
             console.log("ChatMultiAI: Successfully filled ChatGPT input (textarea)")
             
-            // Auto-submit
-            const sendButton = await waitForElement("button[data-testid='send-button']")
-            if (sendButton instanceof HTMLButtonElement && !sendButton.disabled) {
-              sendButton.click()
-              console.log("ChatMultiAI: Auto-sent prompt to ChatGPT")
-              promptWasSent = true
+            // Auto-submit only if autoSend is true
+            if (autoSend) {
+              const sendButton = await waitForElement("button[data-testid='send-button']")
+              if (sendButton instanceof HTMLButtonElement && !sendButton.disabled) {
+                sendButton.click()
+                console.log("ChatMultiAI: Auto-sent prompt to ChatGPT")
+                promptWasSent = true
+              }
             }
           }
         }
@@ -114,12 +118,14 @@ async function fillInputBox(prompt: string) {
         textarea.dispatchEvent(new Event("change", { bubbles: true }))
         console.log("ChatMultiAI: Successfully filled Grok input")
         
-        // Auto-submit
-        const sendButton = await waitForElement("button[type='submit']")
-        if (sendButton instanceof HTMLButtonElement && !sendButton.disabled) {
-          sendButton.click()
-          console.log("ChatMultiAI: Auto-sent prompt to Grok")
-          promptWasSent = true
+        // Auto-submit only if autoSend is true
+        if (autoSend) {
+          const sendButton = await waitForElement("button[type='submit']")
+          if (sendButton instanceof HTMLButtonElement && !sendButton.disabled) {
+            sendButton.click()
+            console.log("ChatMultiAI: Auto-sent prompt to Grok")
+            promptWasSent = true
+          }
         }
       }
     }
@@ -131,12 +137,14 @@ async function fillInputBox(prompt: string) {
         textarea.dispatchEvent(new Event("input", { bubbles: true }))
         console.log("ChatMultiAI: Successfully filled DeepSeek input")
         
-        // Auto-submit - DeepSeek uses a div with role="button" rather than a real button
-        const sendButton = await waitForElement("div[role='button'][aria-disabled='false']")
-        if (sendButton instanceof HTMLElement) {
-          sendButton.click()
-          console.log("ChatMultiAI: Auto-sent prompt to DeepSeek")
-          promptWasSent = true
+        // Auto-submit only if autoSend is true
+        if (autoSend) {
+          const sendButton = await waitForElement("div[role='button'][aria-disabled='false']")
+          if (sendButton instanceof HTMLElement) {
+            sendButton.click()
+            console.log("ChatMultiAI: Auto-sent prompt to DeepSeek")
+            promptWasSent = true
+          }
         }
       }
     }
@@ -158,12 +166,14 @@ async function fillInputBox(prompt: string) {
         contentEditableDiv.dispatchEvent(new Event("input", { bubbles: true }))
         console.log("ChatMultiAI: Successfully filled Claude input")
         
-        // Auto-submit
-        const sendButton = await waitForElement("button[aria-label='Send message']")
-        if (sendButton instanceof HTMLButtonElement && !sendButton.disabled) {
-          sendButton.click()
-          console.log("ChatMultiAI: Auto-sent prompt to Claude")
-          promptWasSent = true
+        // Auto-submit only if autoSend is true
+        if (autoSend) {
+          const sendButton = await waitForElement("button[aria-label='Send message']")
+          if (sendButton instanceof HTMLButtonElement && !sendButton.disabled) {
+            sendButton.click()
+            console.log("ChatMultiAI: Auto-sent prompt to Claude")
+            promptWasSent = true
+          }
         }
       }
     }
@@ -185,20 +195,19 @@ async function fillInputBox(prompt: string) {
         contentEditableDiv.dispatchEvent(new Event("input", { bubbles: true }))
         console.log("ChatMultiAI: Successfully filled Gemini input")
         
-        // Auto-submit
-        const sendButton = await waitForElement("button.send-button")
-        if (sendButton instanceof HTMLButtonElement && !sendButton.disabled) {
-          sendButton.click()
-          console.log("ChatMultiAI: Auto-sent prompt to Gemini")
-          promptWasSent = true
+        // Auto-submit only if autoSend is true
+        if (autoSend) {
+          const sendButton = await waitForElement("button.send-button")
+          if (sendButton instanceof HTMLButtonElement && !sendButton.disabled) {
+            sendButton.click()
+            console.log("ChatMultiAI: Auto-sent prompt to Gemini")
+            promptWasSent = true
+          }
         }
       }
     }
 
-    // 移除localStorage清理，只使用消息传递
-    // localStorage.removeItem("chatmultiai_prompt")
-    
-    // Notify background script that the prompt was sent
+    // Notify background script that the prompt was sent (if autoSend is true)
     if (promptWasSent) {
       chrome.runtime.sendMessage({
         type: "PROMPT_SENT"
@@ -215,18 +224,11 @@ async function fillInputBox(prompt: string) {
 async function main() {
   await waitForPageLoad()
   
-  // 移除localStorage相关代码，只依赖消息传递
-  // const prompt = localStorage.getItem("chatmultiai_prompt")
-  // 
-  // if (prompt) {
-  //   await fillInputBox(prompt)
-  // }
-
   // Listen for messages from the sidepanel via the extension
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === "FILL_PROMPT" && message.prompt) {
-      console.log("ChatMultiAI: Received FILL_PROMPT message:", message.prompt)
-      fillInputBox(message.prompt)
+      console.log("ChatMultiAI: Received FILL_PROMPT message:", message.prompt, "autoSend:", message.autoSend)
+      fillInputBox(message.prompt, message.autoSend)
       sendResponse({ success: true })
     }
     return true // Keep the message channel open for async response

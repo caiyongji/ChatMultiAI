@@ -1,7 +1,63 @@
 // Store the current prompt to share with newly opened tabs
 let currentPrompt = ""
-// 存储每个标签页ID和对应的域名
+// Store each tab ID and its corresponding domain
 const tabDomains = new Map<number, string>()
+// Store active AI provider tabs for follow-up mode
+const activeProviderTabs = new Map<string, number>()
+
+// Helper function to extract domain from URL
+const getDomainFromUrl = (url: string): string => {
+  try {
+    const hostname = new URL(url).hostname
+    // Extract base domain for matching
+    if (hostname.includes('chatgpt.com')) return 'chatgpt.com'
+    if (hostname.includes('grok.com')) return 'grok.com'
+    if (hostname.includes('chat.deepseek.com')) return 'chat.deepseek.com'
+    if (hostname.includes('claude.ai')) return 'claude.ai'
+    if (hostname.includes('gemini.google.com')) return 'gemini.google.com'
+    return hostname
+  } catch (e) {
+    console.error("Invalid URL:", url)
+    return ""
+  }
+}
+
+// Helper function to find existing tab for a domain
+const findExistingTabForDomain = async (domain: string): Promise<number | null> => {
+  // First check our cached map
+  if (activeProviderTabs.has(domain)) {
+    const tabId = activeProviderTabs.get(domain)
+    
+    // Verify tab still exists
+    try {
+      if (tabId) {
+        const tab = await chrome.tabs.get(tabId)
+        if (tab && !tab.discarded) {
+          return tabId
+        }
+      }
+    } catch (e) {
+      // Tab doesn't exist anymore
+      activeProviderTabs.delete(domain)
+    }
+  }
+  
+  // Fallback to searching all tabs
+  try {
+    const tabs = await chrome.tabs.query({})
+    for (const tab of tabs) {
+      if (tab.url && tab.id && getDomainFromUrl(tab.url) === domain) {
+        // Cache this tab for future use
+        activeProviderTabs.set(domain, tab.id)
+        return tab.id
+      }
+    }
+  } catch (e) {
+    console.error("Error searching tabs:", e)
+  }
+  
+  return null
+}
 
 // Handle extension installation
 chrome.runtime.onInstalled.addListener((details) => {
@@ -13,34 +69,51 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 // Listen for messages from sidepanel
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  // Handle storing the prompt for newly opened tabs
-  if (message.type === "STORE_PROMPT") {
-    currentPrompt = message.prompt
-    sendResponse({ success: true })
-  }
-
   // Handle opening multiple tabs with the prompt
   if (message.type === "OPEN_AI_PROVIDERS") {
-    const urls = message.urls || []
-    const prompt = message.prompt || ""
+    const { urls, prompt, autoSend, followUpMode } = message
+    console.log("Opening AI providers with prompt:", prompt, "autoSend:", autoSend, "followUpMode:", followUpMode)
     
     // Store prompt in local variable for new tabs
     currentPrompt = prompt
     
-    // Open each URL in a new tab
-    urls.forEach((url: string) => {
-      chrome.tabs.create({ url }, (tab) => {
-        // 跟踪每个新标签页及其URL域名
-        if (tab.id) {
-          const domain = new URL(url).hostname
-          tabDomains.set(tab.id, domain)
-          console.log(`Tab ${tab.id} created for ${url} (${domain})`)
+    // For each URL
+    Promise.all(urls.map(async (url: string) => {
+      const domain = getDomainFromUrl(url)
+      let tabId: number | null = null
+      
+      // If in follow-up mode, try to find existing tab for this domain
+      if (followUpMode) {
+        tabId = await findExistingTabForDomain(domain)
+      }
+      
+      if (tabId) {
+        // Existing tab found, focus on it and send the prompt
+        try {
+          await chrome.tabs.update(tabId, { active: true })
+          
+          // Send message to content script with prompt and autoSend setting
+          chrome.tabs.sendMessage(tabId, {
+            type: "FILL_PROMPT",
+            prompt,
+            autoSend
+          }).catch((err) => {
+            console.error(`Failed to send message to tab ${tabId}:`, err)
+          })
+          
+          console.log(`Using existing tab ${tabId} for ${domain}`)
+        } catch (e) {
+          console.error(`Error focusing tab ${tabId}:`, e)
+          // If there was an error, fall back to creating a new tab
+          createNewTab(url, prompt, autoSend)
         }
-      })
-    })
+      } else {
+        // No existing tab, create a new one
+        createNewTab(url, prompt, autoSend)
+      }
+    }))
     
     // Set a timeout to clear the prompt after all tabs have been processed
-    // This ensures we don't auto-fill if the user reopens these sites later
     setTimeout(() => {
       currentPrompt = ""
       console.log("Cleared prompt from background script memory")
@@ -51,10 +124,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   
   // Handle notification that a prompt has been sent successfully
   if (message.type === "PROMPT_SENT") {
-    // 接收到消息后，清除这个标签页的记录
-    if (sender.tab && sender.tab.id) {
-      tabDomains.delete(sender.tab.id)
-      console.log(`Received prompt sent notification for tab ${sender.tab.id}, removed from tracking`)
+    // When we receive this message, update our tracking
+    if (sender.tab && sender.tab.id && sender.tab.url) {
+      const domain = getDomainFromUrl(sender.tab.url)
+      if (domain) {
+        // Add/update to active providers
+        activeProviderTabs.set(domain, sender.tab.id)
+        console.log(`Updated active tab for ${domain}: ${sender.tab.id}`)
+      }
     }
     sendResponse({ success: true })
   }
@@ -62,31 +139,42 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true // Keep the message channel open for async response
 })
 
-// Listen for tab updates (when a tab is loaded)
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  // Check if the tab is fully loaded and we have a prompt to send
-  if (changeInfo.status === 'complete' && currentPrompt && tab.url) {
-    // 检查这个标签页是否是我们正在跟踪的
-    const isDomainTracked = tabDomains.has(tabId)
-    
-    if (isDomainTracked) {
-      console.log(`Tab ${tabId} is ready to receive prompt`)
+// Helper function to create a new tab
+function createNewTab(url: string, prompt: string, autoSend: boolean) {
+  chrome.tabs.create({ url }, (tab) => {
+    if (tab.id) {
+      const domain = getDomainFromUrl(url)
+      if (domain) {
+        // Add to active providers
+        activeProviderTabs.set(domain, tab.id)
+        console.log(`Created new tab ${tab.id} for ${domain}`)
+      }
       
-      // Send the prompt to the content script
-      chrome.tabs.sendMessage(tabId, {
-        type: "FILL_PROMPT",
-        prompt: currentPrompt
-      }).catch(err => {
-        console.log(`Message couldn't be delivered to tab ${tabId} yet, content script may not be ready`)
+      // Wait for the page to load before sending the message
+      chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo, updatedTab) {
+        if (tabId === tab.id && changeInfo.status === "complete") {
+          chrome.tabs.onUpdated.removeListener(listener)
+          // Send message to content script with prompt and autoSend setting
+          chrome.tabs.sendMessage(tabId, {
+            type: "FILL_PROMPT",
+            prompt,
+            autoSend
+          }).catch((err) => {
+            console.error("Failed to send message to content script:", err)
+          })
+        }
       })
     }
-  }
-})
+  })
+}
 
 // Listen for tab close events to clean up our tracking
 chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
-  if (tabDomains.has(tabId)) {
-    tabDomains.delete(tabId)
-    console.log(`Tab ${tabId} was closed, removed from tracking`)
+  // Remove from active provider tabs
+  for (const [domain, id] of activeProviderTabs.entries()) {
+    if (id === tabId) {
+      activeProviderTabs.delete(domain)
+      console.log(`Tab ${tabId} for ${domain} was closed, removed from tracking`)
+    }
   }
 }) 
