@@ -141,7 +141,7 @@ const ChatMultiAIContent = () => {
       enabled: true,
       url: "https://chatgpt.com/",
       icon: getIconForProvider("chatgpt"),
-      models: ["GPT-3.5", "GPT-4", "GPT-4o"],
+      models: ["GPT-4o", "o1","GPT-4.5", "o3-mini-high"],
       selected: "GPT-4o"
     },
     {
@@ -150,26 +150,8 @@ const ChatMultiAIContent = () => {
       enabled: false,
       url: "https://grok.com/",
       icon: getIconForProvider("grok"),
-      models: ["Grok-1", "Grok-2"],
-      selected: "Grok-2"
-    },
-    {
-      id: "deepseek",
-      name: "DeepSeek",
-      enabled: false,
-      url: "https://chat.deepseek.com/",
-      icon: getIconForProvider("deepseek"),
-      models: ["DeepSeek-7B", "DeepSeek-67B"],
-      selected: "DeepSeek-67B"
-    },
-    {
-      id: "claude",
-      name: "Claude",
-      enabled: false,
-      url: "https://claude.ai/",
-      icon: getIconForProvider("claude"),
-      models: ["Claude 3 Opus", "Claude 3 Sonnet", "Claude 3 Haiku"],
-      selected: "Claude 3 Sonnet"
+      models: ["Grok-2", "Grok-3"],
+      selected: "Grok-3"
     },
     {
       id: "gemini",
@@ -177,10 +159,28 @@ const ChatMultiAIContent = () => {
       enabled: false,
       url: "https://gemini.google.com/",
       icon: getIconForProvider("gemini"),
-      models: ["Gemini Pro", "Gemini Ultra"],
-      selected: "Gemini Ultra"
+      models: ["2.0 Flash","2.0 Flash Thinking", "2.5 Pro"],
+      selected: "2.0 Flash"
+    },
+    {
+      id: "deepseek",
+      name: "DeepSeek",
+      enabled: false,
+      url: "https://chat.deepseek.com/",
+      icon: getIconForProvider("deepseek"),
+      models: ["DeepSeek-R1","Search"],
+      selected: "DeepSeek-R1"
+    },
+    {
+      id: "claude",
+      name: "Claude",
+      enabled: false,
+      url: "https://claude.ai/",
+      icon: getIconForProvider("claude"),
+      models: ["Claude 3.7 Sonnet", "Claude 3.5 Haiku"],
+      selected: "Claude 3.7 Sonnet"
     }
-  ], [getIconForProvider]) // Depend on getIconForProvider
+  ], [getIconForProvider])
   
   // Initialize providers state with saved data or defaults
   const [providers, setProviders] = useState<AIProvider[]>(() => {
