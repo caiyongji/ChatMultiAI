@@ -302,8 +302,10 @@ const ChatMultiAIContent = () => {
     if (textareaRef.current) {
       // Reset height to auto to get the correct scrollHeight
       textareaRef.current.style.height = 'auto'
-      // Set new height based on content (with a maximum of 200px)
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`
+
+      if(prompt){
+        textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`
+      }
     }
   }, [prompt])
   
@@ -395,7 +397,7 @@ const ChatMultiAIContent = () => {
         <Textarea
           ref={textareaRef}
           placeholder="Type your prompt here..."
-          className="min-h-[50px] resize-none mb-2 focus-visible:ring-primary overflow-y-auto overflow-x-hidden"
+          className="min-h-[50px] max-h-[200px] resize-none mb-2 focus-visible:ring-primary overflow-y-auto overflow-x-hidden"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={(e) => {
