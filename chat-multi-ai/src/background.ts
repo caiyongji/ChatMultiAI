@@ -96,7 +96,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           chrome.tabs.sendMessage(tabId, {
             type: "FILL_PROMPT",
             prompt,
-            autoSend
+            autoSend,
+            followUpMode: true
           }).catch((err) => {
             console.error(`Failed to send message to tab ${tabId}:`, err)
           })
@@ -158,7 +159,8 @@ function createNewTab(url: string, prompt: string, autoSend: boolean) {
           chrome.tabs.sendMessage(tabId, {
             type: "FILL_PROMPT",
             prompt,
-            autoSend
+            autoSend,
+            followUpMode: false
           }).catch((err) => {
             console.error("Failed to send message to content script:", err)
           })

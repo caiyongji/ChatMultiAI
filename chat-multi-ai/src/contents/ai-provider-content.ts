@@ -56,11 +56,15 @@ function waitForElement(selector: string, timeout = 10000): Promise<Element | nu
 }
 
 // Function to fill the input box with prompt text and send it
-async function fillInputBox(prompt: string, autoSend: boolean = false) {
-  if (processed) return
+async function fillInputBox(prompt: string, autoSend: boolean = false, isFollowUp: boolean = false) {
+  // If this is a follow-up, don't check processed flag
+  // If not a follow-up and already processed, return
+  if (!isFollowUp && processed) return
+  
+  // Mark as processed (will be reset after completion if this is a follow-up)
   processed = true
 
-  console.log("ChatMultiAI: Attempting to fill input box with prompt:", prompt, "autoSend:", autoSend)
+  console.log("ChatMultiAI: Attempting to fill input box with prompt:", prompt, "autoSend:", autoSend, "isFollowUp:", isFollowUp)
 
   try {
     // Different handling based on current domain
@@ -84,6 +88,8 @@ async function fillInputBox(prompt: string, autoSend: boolean = false) {
               sendButton.click()
               console.log("ChatMultiAI: Auto-sent prompt to ChatGPT")
               promptWasSent = true
+            } else {
+              console.log("ChatMultiAI: Could not find or click send button for ChatGPT")
             }
           }
         } else {
@@ -101,6 +107,8 @@ async function fillInputBox(prompt: string, autoSend: boolean = false) {
                 sendButton.click()
                 console.log("ChatMultiAI: Auto-sent prompt to ChatGPT")
                 promptWasSent = true
+              } else {
+                console.log("ChatMultiAI: Could not find or click send button for ChatGPT (textarea)")
               }
             }
           }
@@ -125,54 +133,8 @@ async function fillInputBox(prompt: string, autoSend: boolean = false) {
             sendButton.click()
             console.log("ChatMultiAI: Auto-sent prompt to Grok")
             promptWasSent = true
-          }
-        }
-      }
-    }
-    else if (domain.includes("chat.deepseek.com")) {
-      // DeepSeek input selector
-      const textarea = await waitForElement("textarea#chat-input")
-      if (textarea instanceof HTMLTextAreaElement) {
-        textarea.value = prompt
-        textarea.dispatchEvent(new Event("input", { bubbles: true }))
-        console.log("ChatMultiAI: Successfully filled DeepSeek input")
-        
-        // Auto-submit only if autoSend is true
-        if (autoSend) {
-          const sendButton = await waitForElement("div[role='button'][aria-disabled='false']")
-          if (sendButton instanceof HTMLElement) {
-            sendButton.click()
-            console.log("ChatMultiAI: Auto-sent prompt to DeepSeek")
-            promptWasSent = true
-          }
-        }
-      }
-    }
-    else if (domain.includes("claude.ai")) {
-      // Claude input selector
-      const contentEditableDiv = await waitForElement("div.ProseMirror[contenteditable='true']")
-      if (contentEditableDiv) {
-        // Clear existing content
-        contentEditableDiv.innerHTML = ""
-        
-        // Create a paragraph element
-        const paragraph = document.createElement("p")
-        paragraph.textContent = prompt
-        
-        // Append the paragraph to the contenteditable div
-        contentEditableDiv.appendChild(paragraph)
-        
-        // Trigger input event
-        contentEditableDiv.dispatchEvent(new Event("input", { bubbles: true }))
-        console.log("ChatMultiAI: Successfully filled Claude input")
-        
-        // Auto-submit only if autoSend is true
-        if (autoSend) {
-          const sendButton = await waitForElement("button[aria-label='Send message']")
-          if (sendButton instanceof HTMLButtonElement && !sendButton.disabled) {
-            sendButton.click()
-            console.log("ChatMultiAI: Auto-sent prompt to Claude")
-            promptWasSent = true
+          } else {
+            console.log("ChatMultiAI: Could not find or click send button for Grok")
           }
         }
       }
@@ -198,14 +160,69 @@ async function fillInputBox(prompt: string, autoSend: boolean = false) {
         // Auto-submit only if autoSend is true
         if (autoSend) {
           const sendButton = await waitForElement("button.send-button")
-          if (sendButton instanceof HTMLButtonElement && !sendButton.disabled) {
+          if (sendButton instanceof HTMLButtonElement) {
             sendButton.click()
             console.log("ChatMultiAI: Auto-sent prompt to Gemini")
             promptWasSent = true
+          } else {
+            console.log("ChatMultiAI: Could not find or click send button for Gemini")
           }
         }
       }
     }
+    else if (domain.includes("chat.deepseek.com")) {
+      // DeepSeek input selector
+      const textarea = await waitForElement("textarea#chat-input")
+      if (textarea instanceof HTMLTextAreaElement) {
+        textarea.value = prompt
+        textarea.dispatchEvent(new Event("input", { bubbles: true }))
+        console.log("ChatMultiAI: Successfully filled DeepSeek input")
+        
+        // Auto-submit only if autoSend is true
+        if (autoSend) {
+          const sendButton = await waitForElement("div[role='button'][aria-disabled='false']")
+          if (sendButton instanceof HTMLElement) {
+            sendButton.click()
+            console.log("ChatMultiAI: Auto-sent prompt to DeepSeek")
+            promptWasSent = true
+          } else {
+            console.log("ChatMultiAI: Could not find or click send button for DeepSeek")
+          }
+        }
+      }
+    }
+    else if (domain.includes("claude.ai")) {
+      // Claude input selector
+      const contentEditableDiv = await waitForElement("div.ProseMirror[contenteditable='true']")
+      if (contentEditableDiv) {
+        // Clear existing content
+        contentEditableDiv.innerHTML = ""
+        
+        // Create a paragraph element
+        const paragraph = document.createElement("p")
+        paragraph.textContent = prompt
+        
+        // Append the paragraph to the contenteditable div
+        contentEditableDiv.appendChild(paragraph)
+        
+        // Trigger input event
+        contentEditableDiv.dispatchEvent(new Event("input", { bubbles: true }))
+        console.log("ChatMultiAI: Successfully filled Claude input")
+        
+        // Auto-submit only if autoSend is true
+        if (autoSend) {
+          const sendButton = await waitForElement("button[type='button'][aria-label='Send Message']")
+          if (sendButton instanceof HTMLButtonElement) {
+            sendButton.click()
+            console.log("ChatMultiAI: Auto-sent prompt to Claude")
+            promptWasSent = true
+          } else {
+            console.log("ChatMultiAI: Could not find or click send button for Claude")
+          }
+        }
+      }
+    }
+
 
     // Notify background script that the prompt was sent (if autoSend is true)
     if (promptWasSent) {
@@ -215,8 +232,19 @@ async function fillInputBox(prompt: string, autoSend: boolean = false) {
         console.log("Failed to notify background script that prompt was sent:", err)
       })
     }
+    
+    // Reset processed flag if this is a follow-up message
+    // This allows the page to process future follow-up messages
+    if (isFollowUp) {
+      processed = false
+      console.log("ChatMultiAI: Reset processed flag for future follow-ups")
+    }
   } catch (error) {
     console.error("ChatMultiAI: Error filling input box:", error)
+    // Reset processed flag on error to allow retry
+    if (isFollowUp) {
+      processed = false
+    }
   }
 }
 
@@ -227,8 +255,8 @@ async function main() {
   // Listen for messages from the sidepanel via the extension
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === "FILL_PROMPT" && message.prompt) {
-      console.log("ChatMultiAI: Received FILL_PROMPT message:", message.prompt, "autoSend:", message.autoSend)
-      fillInputBox(message.prompt, message.autoSend)
+      console.log("ChatMultiAI: Received FILL_PROMPT message:", message.prompt, "autoSend:", message.autoSend, "followUpMode:", message.followUpMode)
+      fillInputBox(message.prompt, message.autoSend, message.followUpMode)
       sendResponse({ success: true })
     }
     return true // Keep the message channel open for async response
