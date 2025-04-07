@@ -111,7 +111,7 @@ const ChatMultiAIContent = () => {
   const currentTheme = theme === 'system' ? systemTheme : theme
   const isDark = currentTheme === 'dark'
 
-  console.log("currentTheme: ", currentTheme)
+  // console.log("currentTheme: ", currentTheme)
   
   // Helper function to get icon for provider based on theme, memoized with useCallback
   const getIconForProvider = useCallback((providerId: string) => {
@@ -147,7 +147,7 @@ const ChatMultiAIContent = () => {
     {
       id: "grok",
       name: "Grok",
-      enabled: false,
+      enabled: true,
       url: "https://grok.com/",
       icon: getIconForProvider("grok"),
       models: ["Grok-2", "Grok-3"],
@@ -156,7 +156,7 @@ const ChatMultiAIContent = () => {
     {
       id: "gemini",
       name: "Gemini",
-      enabled: false,
+      enabled: true,
       url: "https://gemini.google.com/",
       icon: getIconForProvider("gemini"),
       models: ["2.0 Flash","2.0 Flash Thinking", "2.5 Pro"],
@@ -165,7 +165,7 @@ const ChatMultiAIContent = () => {
     {
       id: "deepseek",
       name: "DeepSeek",
-      enabled: false,
+      enabled: true,
       url: "https://chat.deepseek.com/",
       icon: getIconForProvider("deepseek"),
       models: ["DeepSeek-R1","Search"],
@@ -174,7 +174,7 @@ const ChatMultiAIContent = () => {
     {
       id: "claude",
       name: "Claude",
-      enabled: false,
+      enabled: true,
       url: "https://claude.ai/",
       icon: getIconForProvider("claude"),
       models: ["Claude 3.7 Sonnet", "Claude 3.5 Haiku"],
